@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.ui.manga
 
 import android.app.Activity
 import android.app.ActivityOptions
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -516,8 +517,53 @@ class MangaController :
             activity?.toast(activity?.getString(R.string.manga_removed_library))
             activity?.invalidateOptionsMenu()
         } else {
-            addToLibrary(manga)
+            if (!isDuplicateOfOtherSource(manga)) {
+                addToLibrary(manga)
+            }
         }
+    }
+
+    private fun isDuplicateOfOtherSource(origin: Manga): Boolean {
+        var result = false
+        val mangas = presenter.getAllMangaMutableList()
+
+        mangas.forEach { item ->
+            if (isSameManga(origin, item)) {
+                showAddDuplicateDialog(
+                    origin,
+                    item,
+                    getSourceFromLong(item.source)
+                )
+                result = true
+                return@forEach
+            }
+        }
+
+        return result
+    }
+
+    private fun isSameManga(origin: Manga, other: Manga): Boolean {
+        return origin.title.equals(other.title, ignoreCase = true) &&
+            // Source check, just in case we fetched the library list before it got removed
+            origin.source != other.source
+    }
+
+    private fun getSourceFromLong(sourceId: Long): Source {
+        return Injekt.get<SourceManager>().getOrStub(sourceId)
+    }
+
+    private fun showAddDuplicateDialog(manga: Manga, other: Manga, source: Source) {
+        AlertDialog.Builder(activity).apply {
+            setMessage(activity?.getString(R.string.confirm_manga_add_duplicate, source.name))
+            setPositiveButton(activity?.getString(R.string.action_add)) { _, _, ->
+                addToLibrary(manga)
+            }
+            setNegativeButton(activity?.getString(R.string.action_cancel)) { _, _, -> }
+            setNeutralButton(activity?.getString(R.string.action_show_manga)) { _, _, ->
+                router.pushController(MangaController(other).withFadeTransaction())
+            }
+            setCancelable(true)
+        }.create().show()
     }
 
     fun onTrackingClick() {
