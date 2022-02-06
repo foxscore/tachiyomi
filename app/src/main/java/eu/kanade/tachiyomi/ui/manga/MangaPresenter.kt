@@ -12,7 +12,6 @@ import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.database.DatabaseHelper
 import eu.kanade.tachiyomi.data.database.models.Category
 import eu.kanade.tachiyomi.data.database.models.Chapter
-import eu.kanade.tachiyomi.data.database.models.LibraryManga
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.database.models.MangaCategory
 import eu.kanade.tachiyomi.data.database.models.Track
@@ -175,9 +174,8 @@ class MangaPresenter(
         fetchTrackers()
     }
 
-    fun getAllMangaMutableList(): MutableList<LibraryManga> {
-        return db.getLibraryMangas().executeAsBlocking()
-    }
+    fun getIdenticalMangasMutableList(manga: Manga): MutableList<Manga> =
+        db.getIdenticalMangas(manga).executeAsBlocking()
 
     // Manga info - start
 

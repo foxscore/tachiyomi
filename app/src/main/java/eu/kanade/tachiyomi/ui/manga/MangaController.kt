@@ -524,22 +524,18 @@ class MangaController :
     }
 
     private fun isDuplicateOfOtherSource(origin: Manga): Boolean {
-        var result = false
-        val mangas = presenter.getAllMangaMutableList()
+        val hits = presenter.getIdenticalMangasMutableList(origin)
 
-        mangas.forEach { item ->
-            if (isSameManga(origin, item)) {
-                showAddDuplicateDialog(
-                    origin,
-                    item,
-                    getSourceFromLong(item.source)
-                )
-                result = true
-                return@forEach
-            }
+        if (hits.count() == 0) {
+            return false
         }
 
-        return result
+        showAddDuplicateDialog(
+            origin,
+            hits[0],
+            getSourceFromLong(hits[0].source)
+        )
+        return true
     }
 
     private fun isSameManga(origin: Manga, other: Manga): Boolean {

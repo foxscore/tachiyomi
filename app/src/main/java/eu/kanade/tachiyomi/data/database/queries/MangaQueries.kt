@@ -20,6 +20,7 @@ import eu.kanade.tachiyomi.data.database.tables.CategoryTable
 import eu.kanade.tachiyomi.data.database.tables.ChapterTable
 import eu.kanade.tachiyomi.data.database.tables.MangaCategoryTable
 import eu.kanade.tachiyomi.data.database.tables.MangaTable
+import java.util.Locale
 
 interface MangaQueries : DbProvider {
 
@@ -33,6 +34,25 @@ interface MangaQueries : DbProvider {
         )
         .withGetResolver(LibraryMangaGetResolver.INSTANCE)
         .prepare()
+
+    fun getIdenticalMangas(manga: Manga): PreparedGetListOfObjects<Manga> {
+        return db.get()
+            .listOfObjects(Manga::class.java)
+            .withQuery(
+                Query.builder()
+                    .table(MangaTable.TABLE)
+                    .where(
+                        "( ${MangaTable.COL_FAVORITE} = ? AND LOWER(${MangaTable.COL_TITLE}) = ? ) AND ( ${MangaTable.COL_SOURCE} != ? )"
+                    )
+                    .whereArgs(
+                        1,
+                        manga.title.lowercase(Locale.getDefault()),
+                        manga.source
+                    )
+                    .build()
+            )
+            .prepare()
+    }
 
     fun getFavoriteMangas(sortByTitle: Boolean = true): PreparedGetListOfObjects<Manga> {
         var queryBuilder = Query.builder()
