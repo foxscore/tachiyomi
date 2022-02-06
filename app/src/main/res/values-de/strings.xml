@@ -701,6 +701,4 @@
     <string name="publishing_finished">Veröffentlichung abgeschlossen</string>
     <string name="action_faq_and_guides">Häufige Fragen und Leitfäden</string>
     <string name="backup_restore_invalid_uri">Fehler: leerer URI</string>
-    <string name="confirm_manga_add_duplicate">Es gibt bereits ein Manga mit diesem Namen in deiner Bibliothek, aber von einer anderen Quelle (%1$s).\\n\\nSoll es dennoch hinzugefügt werden?</string>
-    <string name="action_show_manga">Zeige Manga</string>
 </resources>
