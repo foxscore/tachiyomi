@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.ui.manga
 
 import android.app.Activity
 import android.app.ActivityOptions
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -31,6 +30,7 @@ import coil.request.ImageRequest
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.ControllerChangeType
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import dev.chrisbanes.insetter.applyInsetter
@@ -553,17 +553,20 @@ class MangaController :
     }
 
     private fun showAddDuplicateDialog(manga: Manga, other: Manga, source: Source) {
-        AlertDialog.Builder(activity).apply {
-            setMessage(activity?.getString(R.string.confirm_manga_add_duplicate, source.name))
-            setPositiveButton(activity?.getString(R.string.action_add)) { _, _, ->
-                addToLibrary(manga)
-            }
-            setNegativeButton(activity?.getString(R.string.action_cancel)) { _, _, -> }
-            setNeutralButton(activity?.getString(R.string.action_show_manga)) { _, _, ->
-                router.pushController(MangaController(other).withFadeTransaction())
-            }
-            setCancelable(true)
-        }.create().show()
+        // Wrapping it, in order to use 'activity' as a NonNull variable, as is required by MaterialAlertDialogBuilder
+        activity?.let {
+            MaterialAlertDialogBuilder(it).apply {
+                setMessage(activity?.getString(R.string.confirm_manga_add_duplicate, source.name))
+                setPositiveButton(activity?.getString(R.string.action_add)) { _, _, ->
+                    addToLibrary(manga)
+                }
+                setNegativeButton(activity?.getString(R.string.action_cancel)) { _, _, -> }
+                setNeutralButton(activity?.getString(R.string.action_show_manga)) { _, _, ->
+                    router.pushController(MangaController(other).withFadeTransaction())
+                }
+                setCancelable(true)
+            }.create().show()
+        }
     }
 
     fun onTrackingClick() {
