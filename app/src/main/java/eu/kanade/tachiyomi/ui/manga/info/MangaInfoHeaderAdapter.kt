@@ -18,6 +18,7 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.base.controller.getMainAppBarHeight
 import eu.kanade.tachiyomi.ui.manga.MangaController
+import eu.kanade.tachiyomi.util.manga.getMissingChapters
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import eu.kanade.tachiyomi.util.view.loadAnyAutoPause
 import kotlinx.coroutines.flow.launchIn
@@ -91,8 +92,38 @@ class MangaInfoHeaderAdapter(
         }
     }
 
+    // / Do not run this function while the manga is still downloading content?
+    fun updateMissingChapters() {
+        val allChapters = controller.presenter.allChapters
+        val missingChapters = getMissingChapters(allChapters)
+        val sv: View = sharedView!!
+
+        if (missingChapters == null) {
+            binding.missingChapters?.visibility = View.VISIBLE
+            binding.missingChapters?.text = sv.context.getText(R.string.chapter_missing_check_failed)
+            binding.missingChapters?.setBackgroundColor(sv.context.getColor(R.color.yotsuba_tertiaryContainer))
+            return
+        }
+
+        val cacheCount: Int = missingChapters?.count()!!
+
+        // There are no missing chapters
+        if (cacheCount == 0) {
+            binding.missingChapters?.visibility = View.GONE
+            return
+        }
+
+        // There are missing chapters
+        binding.missingChapters?.visibility = View.VISIBLE
+        binding.missingChapters?.text = sv.context.resources.getQuantityString(R.plurals.chapter_missing, cacheCount, cacheCount)
+        binding.missingChapters?.setBackgroundColor(sv.context.getColor(R.color.error))
+    }
+
+    internal var sharedView: View? = null
     inner class HeaderViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
         fun bind() {
+            sharedView = view
+
             // For rounded corners
             binding.mangaCover.clipToOutline = true
 
@@ -293,6 +324,8 @@ class MangaInfoHeaderAdapter(
             binding.mangaSummarySection.setTags(manga.getGenres(), controller::performGenreSearch)
             binding.mangaSummarySection.description = manga.description
             binding.mangaSummarySection.isVisible = !manga.description.isNullOrBlank() || !manga.genre.isNullOrBlank()
+
+            updateMissingChapters()
         }
 
         /**

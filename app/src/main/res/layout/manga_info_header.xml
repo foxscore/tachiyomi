@@ -146,6 +146,28 @@
 
         </LinearLayout>
 
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="8dp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/missing_chapters"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/error"
+            android:checkable="false"
+            android:clickable="false"
+            android:textColor="@color/midnightdusk_background"
+            android:visibility="gone"
+            app:chipIcon="@drawable/ic_warning_white_24dp"
+            app:chipIconEnabled="false"
+            app:chipIconVisible="false"
+            app:closeIconEnabled="false"
+            tools:ignore="TouchTargetSizeCheck"
+            tools:visibility="visible" />
+
     </LinearLayout>
 
     <androidx.constraintlayout.widget.Barrier

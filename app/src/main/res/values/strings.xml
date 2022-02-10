@@ -615,6 +615,11 @@
     <string name="also_set_chapter_settings_for_library">Also apply to all manga in my library</string>
     <string name="set_chapter_settings_as_default">Set as default</string>
     <string name="no_chapters_error">No chapters found</string>
+    <string name="chapter_missing_check_failed">Unable to detect missing chapters</string>
+    <plurals name="chapter_missing">
+        <item quantity="one">Missing 1 chapter</item>
+        <item quantity="other">Missing %d chapters</item>
+    </plurals>
 
     <!-- Tracking Screen -->
     <string name="tracker_anilist" translatable="false">AniList</string>

@@ -19,7 +19,6 @@ import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
-import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -325,6 +324,20 @@ class MangaController :
         recyclerViewUpdatesToolbarTitleAlpha(true)
     }
 
+    private fun updateMissingChapters() {
+        mangaInfoAdapter?.updateMissingChapters()
+//        val missingChaptersCheckResult = getMissingChapters(presenter.allChapters)
+//        if (missingChaptersCheckResult == null) {
+//            activity?.toast("Check failed")
+//        } else if (missingChaptersCheckResult.count() > 0) {
+//            var txt = " "
+//            missingChaptersCheckResult.forEach { value ->
+//                txt += "$value "
+//            }
+//            activity?.toast(txt)
+//        }
+    }
+
     private fun recyclerViewUpdatesToolbarTitleAlpha(enable: Boolean) {
         val recycler = binding.fullRecycler ?: binding.infoRecycler ?: return
         if (enable) {
@@ -469,6 +482,7 @@ class MangaController :
     fun onFetchMangaInfoDone() {
         isRefreshingInfo = false
         updateRefreshing()
+        updateMissingChapters()
     }
 
     fun onFetchMangaInfoError(error: Throwable) {
