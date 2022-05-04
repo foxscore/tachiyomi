@@ -4,9 +4,11 @@ import eu.kanade.tachiyomi.R
 
 const val DEVICE_ONLY_ON_WIFI = "wifi"
 const val DEVICE_CHARGING = "ac"
+const val DEVICE_BATTERY_NOT_LOW = "battery_not_low"
 
-const val MANGA_ONGOING = "manga_ongoing"
-const val MANGA_FULLY_READ = "manga_fully_read"
+const val MANGA_NON_COMPLETED = "manga_ongoing"
+const val MANGA_HAS_UNREAD = "manga_fully_read"
+const val MANGA_NON_READ = "manga_started"
 
 /**
  * This class stores the values for the preferences in the application.

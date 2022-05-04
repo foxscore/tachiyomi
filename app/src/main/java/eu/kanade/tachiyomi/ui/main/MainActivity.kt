@@ -27,6 +27,7 @@ import com.bluelinelabs.conductor.Conductor
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
+import com.bluelinelabs.conductor.RouterTransaction
 import com.google.android.material.navigation.NavigationBarView
 import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
 import dev.chrisbanes.insetter.applyInsetter
@@ -39,14 +40,14 @@ import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
 import eu.kanade.tachiyomi.data.updater.AppUpdateResult
 import eu.kanade.tachiyomi.databinding.MainActivityBinding
 import eu.kanade.tachiyomi.extension.api.ExtensionGithubApi
-import eu.kanade.tachiyomi.ui.base.activity.BaseViewBindingActivity
+import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 import eu.kanade.tachiyomi.ui.base.controller.DialogController
 import eu.kanade.tachiyomi.ui.base.controller.FabController
 import eu.kanade.tachiyomi.ui.base.controller.NoAppBarElevationController
 import eu.kanade.tachiyomi.ui.base.controller.RootController
 import eu.kanade.tachiyomi.ui.base.controller.TabbedController
+import eu.kanade.tachiyomi.ui.base.controller.pushController
 import eu.kanade.tachiyomi.ui.base.controller.setRoot
-import eu.kanade.tachiyomi.ui.base.controller.withFadeTransaction
 import eu.kanade.tachiyomi.ui.browse.BrowseController
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceController
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchController
@@ -76,19 +77,13 @@ import kotlinx.coroutines.flow.onEach
 import logcat.LogPriority
 import uy.kohesive.injekt.injectLazy
 
-class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
+class MainActivity : BaseActivity() {
+
+    lateinit var binding: MainActivityBinding
 
     private lateinit var router: Router
 
-    private val startScreenId by lazy {
-        when (preferences.startScreen()) {
-            2 -> R.id.nav_history
-            3 -> R.id.nav_updates
-            4 -> R.id.nav_browse
-            else -> R.id.nav_library
-        }
-    }
-
+    private val startScreenId = R.id.nav_library
     private var isConfirmingExit: Boolean = false
     private var isHandlingShortcut: Boolean = false
 
@@ -179,12 +174,12 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     }
                     R.id.nav_updates -> {
                         if (router.backstackSize == 1) {
-                            router.pushController(DownloadController().withFadeTransaction())
+                            router.pushController(DownloadController())
                         }
                     }
                     R.id.nav_more -> {
                         if (router.backstackSize == 1) {
-                            router.pushController(SettingsMainController().withFadeTransaction())
+                            router.pushController(SettingsMainController())
                         }
                     }
                 }
@@ -201,7 +196,7 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     from: Controller?,
                     isPush: Boolean,
                     container: ViewGroup,
-                    handler: ControllerChangeHandler
+                    handler: ControllerChangeHandler,
                 ) {
                     syncActivityViewWithController(to, from, isPush)
                 }
@@ -211,10 +206,10 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     from: Controller?,
                     isPush: Boolean,
                     container: ViewGroup,
-                    handler: ControllerChangeHandler
+                    handler: ControllerChangeHandler,
                 ) {
                 }
-            }
+            },
         )
         if (!router.hasRootController()) {
             // Set start screen
@@ -235,6 +230,11 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
             // Show changelog prompt on update
             if (didMigration && !BuildConfig.DEBUG) {
                 WhatsNewDialogController().showDialog(router)
+            }
+        } else {
+            // Restore selected nav item
+            router.backstack.firstOrNull()?.tag()?.toIntOrNull()?.let {
+                nav.menu.findItem(it).isChecked = true
             }
         }
 
@@ -355,8 +355,9 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
 
             // Extension updates
             try {
-                val pendingUpdates = ExtensionGithubApi().checkForUpdates(this@MainActivity)
-                preferences.extensionUpdatesCount().set(pendingUpdates.size)
+                ExtensionGithubApi().checkForUpdates(this@MainActivity)?.let { pendingUpdates ->
+                    preferences.extensionUpdatesCount().set(pendingUpdates.size)
+                }
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e)
             }
@@ -399,22 +400,23 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     router.popToRoot()
                 }
                 setSelectedNavItem(R.id.nav_browse)
-                router.pushController(BrowseController(toExtensions = true).withFadeTransaction())
+                router.pushController(BrowseController(toExtensions = true))
             }
             SHORTCUT_MANGA -> {
                 val extras = intent.extras ?: return false
-                if (router.backstackSize > 1) {
+                val fgController = router.backstack.lastOrNull()?.controller as? MangaController
+                if (fgController?.manga?.id != extras.getLong(MangaController.MANGA_EXTRA)) {
                     router.popToRoot()
+                    setSelectedNavItem(R.id.nav_library)
+                    router.pushController(RouterTransaction.with(MangaController(extras)))
                 }
-                setSelectedNavItem(R.id.nav_library)
-                router.pushController(MangaController(extras).withFadeTransaction())
             }
             SHORTCUT_DOWNLOADS -> {
                 if (router.backstackSize > 1) {
                     router.popToRoot()
                 }
                 setSelectedNavItem(R.id.nav_more)
-                router.pushController(DownloadController().withFadeTransaction())
+                router.pushController(DownloadController())
             }
             Intent.ACTION_SEARCH, Intent.ACTION_SEND, "com.google.android.gms.actions.SEARCH_ACTION" -> {
                 // If the intent match the "standard" Android search intent
@@ -426,7 +428,7 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     if (router.backstackSize > 1) {
                         router.popToRoot()
                     }
-                    router.pushController(GlobalSearchController(query).withFadeTransaction())
+                    router.pushController(GlobalSearchController(query))
                 }
             }
             INTENT_SEARCH -> {
@@ -436,7 +438,7 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
                     if (router.backstackSize > 1) {
                         router.popToRoot()
                     }
-                    router.pushController(GlobalSearchController(query, filter).withFadeTransaction())
+                    router.pushController(GlobalSearchController(query, filter))
                 }
             }
             else -> {
@@ -484,7 +486,7 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
         // Color taken from m3_appbar_background
         window.statusBarColor = ColorUtils.compositeColors(
             getColor(R.color.m3_appbar_overlay_color),
-            getThemeColor(R.attr.colorSurface)
+            getThemeColor(R.attr.colorSurface),
         )
         super.onSupportActionModeStarted(mode)
     }
@@ -553,11 +555,12 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
             from.cleanupTabs(binding.tabs)
         }
         if (to is TabbedController) {
-            to.configureTabs(binding.tabs)
+            if (to.configureTabs(binding.tabs)) {
+                binding.tabs.isVisible = true
+            }
         } else {
-            binding.tabs.setupWithViewPager(null)
+            binding.tabs.isVisible = false
         }
-        binding.tabs.isVisible = to is TabbedController
 
         if (from is FabController) {
             from.cleanupFab(binding.fabLayout.rootFab)
@@ -617,6 +620,10 @@ class MainActivity : BaseViewBindingActivity<MainActivityBinding>() {
 
     private val nav: NavigationBarView
         get() = binding.bottomNav ?: binding.sideNav!!
+
+    init {
+        registerSecureActivity(this)
+    }
 
     companion object {
         // Splash screen

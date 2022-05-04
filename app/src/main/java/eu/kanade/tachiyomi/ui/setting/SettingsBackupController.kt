@@ -20,7 +20,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.backup.BackupConst
-import eu.kanade.tachiyomi.data.backup.BackupCreateService
 import eu.kanade.tachiyomi.data.backup.BackupCreatorJob
 import eu.kanade.tachiyomi.data.backup.BackupRestoreService
 import eu.kanade.tachiyomi.data.backup.ValidatorParseException
@@ -70,7 +69,7 @@ class SettingsBackupController : SettingsController() {
                     context.toast(R.string.restore_miui_warning, Toast.LENGTH_LONG)
                 }
 
-                if (!BackupCreateService.isRunning(context)) {
+                if (!BackupCreatorJob.isManualJobRunning(context)) {
                     val ctrl = CreateBackupDialog()
                     ctrl.targetController = this@SettingsBackupController
                     ctrl.showDialog(router)
@@ -115,7 +114,7 @@ class SettingsBackupController : SettingsController() {
                     R.string.update_12hour,
                     R.string.update_24hour,
                     R.string.update_48hour,
-                    R.string.update_weekly
+                    R.string.update_weekly,
                 )
                 entryValues = arrayOf("0", "6", "12", "24", "48", "168")
                 summary = "%s"
@@ -197,11 +196,7 @@ class SettingsBackupController : SettingsController() {
                         Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
                     activity.contentResolver.takePersistableUriPermission(uri, flags)
-                    BackupCreateService.start(
-                        activity,
-                        uri,
-                        backupFlags,
-                    )
+                    BackupCreatorJob.startNow(activity, uri, backupFlags)
                 }
                 CODE_BACKUP_RESTORE -> {
                     RestoreBackupDialog(uri).showDialog(router)
@@ -233,7 +228,7 @@ class SettingsBackupController : SettingsController() {
                 R.string.categories,
                 R.string.chapters,
                 R.string.track,
-                R.string.history
+                R.string.history,
             )
                 .map { activity.getString(it) }
             val selected = options.map { true }.toBooleanArray()
@@ -252,10 +247,10 @@ class SettingsBackupController : SettingsController() {
                     selected.forEachIndexed { i, checked ->
                         if (checked) {
                             when (i) {
-                                1 -> flags = flags or BackupCreateService.BACKUP_CATEGORY
-                                2 -> flags = flags or BackupCreateService.BACKUP_CHAPTER
-                                3 -> flags = flags or BackupCreateService.BACKUP_TRACK
-                                4 -> flags = flags or BackupCreateService.BACKUP_HISTORY
+                                1 -> flags = flags or BackupConst.BACKUP_CATEGORY
+                                2 -> flags = flags or BackupConst.BACKUP_CHAPTER
+                                3 -> flags = flags or BackupConst.BACKUP_TRACK
+                                4 -> flags = flags or BackupConst.BACKUP_HISTORY
                             }
                         }
                     }
@@ -269,7 +264,7 @@ class SettingsBackupController : SettingsController() {
 
     class RestoreBackupDialog(bundle: Bundle? = null) : DialogController(bundle) {
         constructor(uri: Uri) : this(
-            bundleOf(KEY_URI to uri)
+            bundleOf(KEY_URI to uri),
         )
 
         override fun onCreateDialog(savedViewState: Bundle?): Dialog {

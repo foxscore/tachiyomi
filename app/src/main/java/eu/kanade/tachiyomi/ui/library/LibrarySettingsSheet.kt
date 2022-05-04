@@ -23,7 +23,7 @@ import uy.kohesive.injekt.injectLazy
 class LibrarySettingsSheet(
     router: Router,
     private val trackManager: TrackManager = Injekt.get(),
-    onGroupClickListener: (ExtendedNavigationView.Group) -> Unit
+    onGroupClickListener: (ExtendedNavigationView.Group) -> Unit,
 ) : TabbedBottomSheetDialog(router.activity!!) {
 
     val filters: Filter
@@ -57,13 +57,13 @@ class LibrarySettingsSheet(
     override fun getTabViews(): List<View> = listOf(
         filters,
         sort,
-        display
+        display,
     )
 
     override fun getTabTitles(): List<Int> = listOf(
         R.string.action_filter,
         R.string.action_sort,
-        R.string.action_display
+        R.string.action_display,
     )
 
     /**
@@ -89,6 +89,7 @@ class LibrarySettingsSheet(
 
             private val downloaded = Item.TriStateGroup(R.string.action_filter_downloaded, this)
             private val unread = Item.TriStateGroup(R.string.action_filter_unread, this)
+            private val started = Item.TriStateGroup(R.string.action_filter_started, this)
             private val completed = Item.TriStateGroup(R.string.completed, this)
             private val trackFilters: Map<Int, Item.TriStateGroup>
 
@@ -103,7 +104,7 @@ class LibrarySettingsSheet(
                         trackFilters = services.associate { service ->
                             Pair(service.id, Item.TriStateGroup(getServiceResId(service, size), this))
                         }
-                        val list: MutableList<Item> = mutableListOf(downloaded, unread, completed)
+                        val list: MutableList<Item> = mutableListOf(downloaded, unread, started, completed)
                         if (size > 1) list.add(Item.Header(R.string.action_filter_tracked))
                         list.addAll(trackFilters.values)
                         items = list
@@ -122,6 +123,7 @@ class LibrarySettingsSheet(
                     downloaded.state = preferences.filterDownloaded().get()
                 }
                 unread.state = preferences.filterUnread().get()
+                started.state = preferences.filterStarted().get()
                 completed.state = preferences.filterCompleted().get()
 
                 trackFilters.forEach { trackFilter ->
@@ -141,6 +143,7 @@ class LibrarySettingsSheet(
                 when (item) {
                     downloaded -> preferences.filterDownloaded().set(newState)
                     unread -> preferences.filterUnread().set(newState)
+                    started -> preferences.filterStarted().set(newState)
                     completed -> preferences.filterCompleted().set(newState)
                     else -> {
                         trackFilters.forEach { trackFilter ->
@@ -179,8 +182,8 @@ class LibrarySettingsSheet(
             private val alphabetically = Item.MultiSort(R.string.action_sort_alpha, this)
             private val total = Item.MultiSort(R.string.action_sort_total, this)
             private val lastRead = Item.MultiSort(R.string.action_sort_last_read, this)
-            private val lastChecked = Item.MultiSort(R.string.action_sort_last_checked, this)
-            private val unread = Item.MultiSort(R.string.action_filter_unread, this)
+            private val lastChecked = Item.MultiSort(R.string.action_sort_last_manga_update, this)
+            private val unread = Item.MultiSort(R.string.action_sort_unread_count, this)
             private val latestChapter = Item.MultiSort(R.string.action_sort_latest_chapter, this)
             private val chapterFetchDate = Item.MultiSort(R.string.action_sort_chapter_fetch_date, this)
             private val dateAdded = Item.MultiSort(R.string.action_sort_date_added, this)
@@ -203,15 +206,15 @@ class LibrarySettingsSheet(
                 lastRead.state =
                     if (sorting == SortModeSetting.LAST_READ) order else Item.MultiSort.SORT_NONE
                 lastChecked.state =
-                    if (sorting == SortModeSetting.LAST_CHECKED) order else Item.MultiSort.SORT_NONE
+                    if (sorting == SortModeSetting.LAST_MANGA_UPDATE) order else Item.MultiSort.SORT_NONE
                 unread.state =
-                    if (sorting == SortModeSetting.UNREAD) order else Item.MultiSort.SORT_NONE
+                    if (sorting == SortModeSetting.UNREAD_COUNT) order else Item.MultiSort.SORT_NONE
                 total.state =
                     if (sorting == SortModeSetting.TOTAL_CHAPTERS) order else Item.MultiSort.SORT_NONE
                 latestChapter.state =
                     if (sorting == SortModeSetting.LATEST_CHAPTER) order else Item.MultiSort.SORT_NONE
                 chapterFetchDate.state =
-                    if (sorting == SortModeSetting.DATE_FETCHED) order else Item.MultiSort.SORT_NONE
+                    if (sorting == SortModeSetting.CHAPTER_FETCH_DATE) order else Item.MultiSort.SORT_NONE
                 dateAdded.state =
                     if (sorting == SortModeSetting.DATE_ADDED) order else Item.MultiSort.SORT_NONE
             }
@@ -258,11 +261,11 @@ class LibrarySettingsSheet(
                 val flag = when (item) {
                     alphabetically -> SortModeSetting.ALPHABETICAL
                     lastRead -> SortModeSetting.LAST_READ
-                    lastChecked -> SortModeSetting.LAST_CHECKED
-                    unread -> SortModeSetting.UNREAD
+                    lastChecked -> SortModeSetting.LAST_MANGA_UPDATE
+                    unread -> SortModeSetting.UNREAD_COUNT
                     total -> SortModeSetting.TOTAL_CHAPTERS
                     latestChapter -> SortModeSetting.LATEST_CHAPTER
-                    chapterFetchDate -> SortModeSetting.DATE_FETCHED
+                    chapterFetchDate -> SortModeSetting.CHAPTER_FETCH_DATE
                     dateAdded -> SortModeSetting.DATE_ADDED
                     else -> throw NotImplementedError("Unknown display mode")
                 }
@@ -315,10 +318,11 @@ class LibrarySettingsSheet(
 
             private val compactGrid = Item.Radio(R.string.action_display_grid, this)
             private val comfortableGrid = Item.Radio(R.string.action_display_comfortable_grid, this)
+            private val coverOnlyGrid = Item.Radio(R.string.action_display_cover_only_grid, this)
             private val list = Item.Radio(R.string.action_display_list, this)
 
             override val header = Item.Header(R.string.action_display_mode)
-            override val items = listOf(compactGrid, comfortableGrid, list)
+            override val items = listOf(compactGrid, comfortableGrid, coverOnlyGrid, list)
             override val footer = null
 
             override fun initModels() {
@@ -342,6 +346,7 @@ class LibrarySettingsSheet(
             fun setGroupSelections(mode: DisplayModeSetting) {
                 compactGrid.checked = mode == DisplayModeSetting.COMPACT_GRID
                 comfortableGrid.checked = mode == DisplayModeSetting.COMFORTABLE_GRID
+                coverOnlyGrid.checked = mode == DisplayModeSetting.COVER_ONLY_GRID
                 list.checked = mode == DisplayModeSetting.LIST
             }
 
@@ -349,6 +354,7 @@ class LibrarySettingsSheet(
                 val flag = when (item) {
                     compactGrid -> DisplayModeSetting.COMPACT_GRID
                     comfortableGrid -> DisplayModeSetting.COMFORTABLE_GRID
+                    coverOnlyGrid -> DisplayModeSetting.COVER_ONLY_GRID
                     list -> DisplayModeSetting.LIST
                     else -> throw NotImplementedError("Unknown display mode")
                 }

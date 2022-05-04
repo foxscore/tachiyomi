@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
 class PagerPageHolder(
     readerThemedContext: Context,
     val viewer: PagerViewer,
-    val page: ReaderPage
+    val page: ReaderPage,
 ) : ReaderPageImageView(readerThemedContext), ViewPagerAdapter.PositionableView {
 
     /**
@@ -226,8 +226,9 @@ class PagerPageHolder(
                             zoomDuration = viewer.config.doubleTapAnimDuration,
                             minimumScaleType = viewer.config.imageScaleType,
                             cropBorders = viewer.config.imageCropBorders,
-                            zoomStartPosition = viewer.config.imageZoomType
-                        )
+                            zoomStartPosition = viewer.config.imageZoomType,
+                            landscapeZoom = viewer.config.landscapeZoom,
+                        ),
                     )
                     if (!isAnimated) {
                         pageBackground = background

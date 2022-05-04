@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.network
 
 import android.content.Context
-import coil.util.CoilUtils
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.network.interceptor.CloudflareInterceptor
 import eu.kanade.tachiyomi.network.interceptor.UserAgentInterceptor
@@ -28,6 +27,8 @@ class NetworkHelper(context: Context) {
                 .cookieJar(cookieManager)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
+                .callTimeout(2, TimeUnit.MINUTES)
+                // .fastFallback(true) // TODO: re-enable when OkHttp 5 is stabler
                 .addInterceptor(UserAgentInterceptor())
 
             if (preferences.verboseLogging()) {
@@ -41,14 +42,13 @@ class NetworkHelper(context: Context) {
                 PREF_DOH_CLOUDFLARE -> builder.dohCloudflare()
                 PREF_DOH_GOOGLE -> builder.dohGoogle()
                 PREF_DOH_ADGUARD -> builder.dohAdGuard()
+                PREF_DOH_QUAD9 -> builder.dohQuad9()
             }
 
             return builder
         }
 
     val client by lazy { baseClientBuilder.cache(Cache(cacheDir, cacheSize)).build() }
-
-    val coilClient by lazy { baseClientBuilder.cache(CoilUtils.createDefaultCache(context)).build() }
 
     val cloudflareClient by lazy {
         client.newBuilder()

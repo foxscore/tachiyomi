@@ -13,8 +13,6 @@ object PreferenceKeys {
 
     const val defaultOrientationType = "pref_default_orientation_type_key"
 
-    const val jumpToChapters = "jump_to_chapters"
-
     const val autoUpdateTrack = "pref_auto_update_manga_sync_key"
 
     const val downloadOnlyOverWifi = "pref_download_only_over_wifi_key"
@@ -31,6 +29,8 @@ object PreferenceKeys {
 
     const val filterUnread = "pref_filter_library_unread"
 
+    const val filterStarted = "pref_filter_library_started"
+
     const val filterCompleted = "pref_filter_library_completed"
 
     const val filterTracked = "pref_filter_library_tracked"
@@ -40,8 +40,6 @@ object PreferenceKeys {
 
     const val migrationSortingMode = "pref_migration_sorting"
     const val migrationSortingDirection = "pref_migration_direction"
-
-    const val startScreen = "start_screen"
 
     const val hideNotificationContent = "hide_notification_content"
 

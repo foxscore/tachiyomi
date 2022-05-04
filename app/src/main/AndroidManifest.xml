@@ -26,7 +26,6 @@
         android:name=".App"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
-        android:hasFragileUserData="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
@@ -179,10 +178,6 @@
 
         <service
             android:name=".data.updater.AppUpdateService"
-            android:exported="false" />
-
-        <service
-            android:name=".data.backup.BackupCreateService"
             android:exported="false" />
 
         <service

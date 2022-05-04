@@ -20,6 +20,7 @@ import com.google.android.material.snackbar.Snackbar
 import dev.chrisbanes.insetter.applyInsetter
 import eu.davidea.flexibleadapter.FlexibleAdapter
 import eu.davidea.flexibleadapter.items.IFlexible
+import eu.kanade.domain.source.model.Source
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.models.Category
 import eu.kanade.tachiyomi.data.database.models.Manga
@@ -32,7 +33,7 @@ import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.base.controller.FabController
 import eu.kanade.tachiyomi.ui.base.controller.SearchableNucleusController
-import eu.kanade.tachiyomi.ui.base.controller.withFadeTransaction
+import eu.kanade.tachiyomi.ui.base.controller.pushController
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchController
 import eu.kanade.tachiyomi.ui.library.ChangeMangaCategoriesDialog
 import eu.kanade.tachiyomi.ui.library.setting.DisplayModeSetting
@@ -69,15 +70,18 @@ open class BrowseSourceController(bundle: Bundle) :
     FlexibleAdapter.EndlessScrollListener,
     ChangeMangaCategoriesDialog.Listener {
 
-    constructor(source: CatalogueSource, searchQuery: String? = null) : this(
+    constructor(sourceId: Long, query: String? = null) : this(
         Bundle().apply {
-            putLong(SOURCE_ID_KEY, source.id)
-
-            if (searchQuery != null) {
-                putString(SEARCH_QUERY_KEY, searchQuery)
+            putLong(SOURCE_ID_KEY, sourceId)
+            query?.let { query ->
+                putString(SEARCH_QUERY_KEY, query)
             }
-        }
+        },
     )
+
+    constructor(source: CatalogueSource, query: String? = null) : this(source.id, query)
+
+    constructor(source: Source, query: String? = null) : this(source.id, query)
 
     private val preferences: PreferencesHelper by injectLazy()
 
@@ -155,7 +159,7 @@ open class BrowseSourceController(bundle: Bundle) :
                 val newFilters = presenter.source.getFilterList()
                 presenter.sourceFilters = newFilters
                 filterSheet?.setFilters(presenter.filterItems)
-            }
+            },
         )
         filterSheet?.setFilters(presenter.filterItems)
 
@@ -222,7 +226,7 @@ open class BrowseSourceController(bundle: Bundle) :
                 (layoutManager as GridLayoutManager).spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                     override fun getSpanSize(position: Int): Int {
                         return when (adapter?.getItemViewType(position)) {
-                            R.layout.source_compact_grid_item, R.layout.source_comfortable_grid_item, null -> 1
+                            R.layout.source_compact_grid_item, R.layout.source_comfortable_grid_item -> 1
                             else -> spanCount
                         }
                     }
@@ -269,13 +273,13 @@ open class BrowseSourceController(bundle: Bundle) :
                 }
 
                 true
-            }
+            },
         )
 
         val displayItem = when (preferences.sourceDisplayMode().get()) {
-            DisplayModeSetting.COMPACT_GRID -> R.id.action_compact_grid
-            DisplayModeSetting.COMFORTABLE_GRID -> R.id.action_comfortable_grid
             DisplayModeSetting.LIST -> R.id.action_list
+            DisplayModeSetting.COMFORTABLE_GRID -> R.id.action_comfortable_grid
+            else -> R.id.action_compact_grid
         }
         menu.findItem(displayItem).isChecked = true
     }
@@ -426,13 +430,13 @@ open class BrowseSourceController(bundle: Bundle) :
         if (adapter.isEmpty) {
             val actions = if (presenter.source is LocalSource) {
                 listOf(
-                    EmptyView.Action(R.string.local_source_help_guide, R.drawable.ic_help_24dp) { openLocalSourceHelpGuide() }
+                    EmptyView.Action(R.string.local_source_help_guide, R.drawable.ic_help_24dp) { openLocalSourceHelpGuide() },
                 )
             } else {
                 listOf(
                     EmptyView.Action(R.string.action_retry, R.drawable.ic_refresh_24dp, retryAction),
                     EmptyView.Action(R.string.action_open_in_web_view, R.drawable.ic_public_24dp) { openInWebView() },
-                    EmptyView.Action(R.string.label_help, R.drawable.ic_help_24dp) { activity?.openInBrowser(MoreController.URL_HELP) }
+                    EmptyView.Action(R.string.label_help, R.drawable.ic_help_24dp) { activity?.openInBrowser(MoreController.URL_HELP) },
                 )
             }
 
@@ -569,7 +573,7 @@ open class BrowseSourceController(bundle: Bundle) :
      */
     override fun onItemClick(view: View, position: Int): Boolean {
         val item = adapter?.getItem(position) as? SourceItem ?: return false
-        router.pushController(MangaController(item.manga, true).withFadeTransaction())
+        router.pushController(MangaController(item.manga, true))
 
         return false
     }

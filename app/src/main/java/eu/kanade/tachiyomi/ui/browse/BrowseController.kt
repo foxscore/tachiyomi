@@ -31,7 +31,7 @@ class BrowseController :
     TabbedController {
 
     constructor(toExtensions: Boolean = false) : super(
-        bundleOf(TO_EXTENSIONS_EXTRA to toExtensions)
+        bundleOf(TO_EXTENSIONS_EXTRA to toExtensions),
     )
 
     @Suppress("unused")
@@ -79,11 +79,12 @@ class BrowseController :
         }
     }
 
-    override fun configureTabs(tabs: TabLayout) {
+    override fun configureTabs(tabs: TabLayout): Boolean {
         with(tabs) {
             tabGravity = TabLayout.GRAVITY_FILL
             tabMode = TabLayout.MODE_FIXED
         }
+        return true
     }
 
     override fun cleanupTabs(tabs: TabLayout) {
@@ -95,7 +96,7 @@ class BrowseController :
         /* It's possible to switch to the Library controller by the time setExtensionUpdateBadge
         is called, resulting in a badge being put on the category tabs (if enabled).
         This check prevents that from happening */
-        if (router.backstack.last().controller !is BrowseController) return
+        if (router.backstack.lastOrNull()?.controller !is BrowseController) return
 
         (activity as? MainActivity)?.binding?.tabs?.apply {
             val updates = preferences.extensionUpdatesCount().get()
@@ -113,7 +114,7 @@ class BrowseController :
         private val tabTitles = listOf(
             R.string.label_sources,
             R.string.label_extensions,
-            R.string.label_migration
+            R.string.label_migration,
         )
             .map { resources!!.getString(it) }
 

@@ -5,7 +5,7 @@ import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import eu.kanade.tachiyomi.data.backup.BackupCreatorJob
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
-import eu.kanade.tachiyomi.data.preference.MANGA_ONGOING
+import eu.kanade.tachiyomi.data.preference.MANGA_NON_COMPLETED
 import eu.kanade.tachiyomi.data.preference.PreferenceKeys
 import eu.kanade.tachiyomi.data.preference.PreferenceValues
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
@@ -204,11 +204,11 @@ object Migrations {
                 val newSortingMode = when (oldSortingMode) {
                     LibrarySort.ALPHA -> SortModeSetting.ALPHABETICAL
                     LibrarySort.LAST_READ -> SortModeSetting.LAST_READ
-                    LibrarySort.LAST_CHECKED -> SortModeSetting.LAST_CHECKED
-                    LibrarySort.UNREAD -> SortModeSetting.UNREAD
+                    LibrarySort.LAST_CHECKED -> SortModeSetting.LAST_MANGA_UPDATE
+                    LibrarySort.UNREAD -> SortModeSetting.UNREAD_COUNT
                     LibrarySort.TOTAL -> SortModeSetting.TOTAL_CHAPTERS
                     LibrarySort.LATEST_CHAPTER -> SortModeSetting.LATEST_CHAPTER
-                    LibrarySort.CHAPTER_FETCH_DATE -> SortModeSetting.DATE_FETCHED
+                    LibrarySort.CHAPTER_FETCH_DATE -> SortModeSetting.CHAPTER_FETCH_DATE
                     LibrarySort.DATE_ADDED -> SortModeSetting.DATE_ADDED
                     else -> SortModeSetting.ALPHABETICAL
                 }
@@ -244,7 +244,7 @@ object Migrations {
             if (oldVersion < 72) {
                 val oldUpdateOngoingOnly = prefs.getBoolean("pref_update_only_non_completed_key", true)
                 if (!oldUpdateOngoingOnly) {
-                    preferences.libraryUpdateMangaRestriction() -= MANGA_ONGOING
+                    preferences.libraryUpdateMangaRestriction() -= MANGA_NON_COMPLETED
                 }
             }
             if (oldVersion < 75) {
@@ -254,6 +254,16 @@ object Migrations {
                 }
                 if (DeviceUtil.isMiui && preferences.extensionInstaller().get() == PreferenceValues.ExtensionInstaller.PACKAGEINSTALLER) {
                     preferences.extensionInstaller().set(PreferenceValues.ExtensionInstaller.LEGACY)
+                }
+            }
+            if (oldVersion < 76) {
+                BackupCreatorJob.setupTask(context)
+            }
+            if (oldVersion < 77) {
+                val oldReaderTap = prefs.getBoolean("reader_tap", false)
+                if (!oldReaderTap) {
+                    preferences.navigationModePager().set(5)
+                    preferences.navigationModeWebtoon().set(5)
                 }
             }
 

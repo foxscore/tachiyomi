@@ -14,7 +14,6 @@ import eu.kanade.tachiyomi.data.database.resolvers.MangaCoverLastModifiedPutReso
 import eu.kanade.tachiyomi.data.database.resolvers.MangaFavoritePutResolver
 import eu.kanade.tachiyomi.data.database.resolvers.MangaFlagsPutResolver
 import eu.kanade.tachiyomi.data.database.resolvers.MangaLastUpdatedPutResolver
-import eu.kanade.tachiyomi.data.database.resolvers.MangaTitlePutResolver
 import eu.kanade.tachiyomi.data.database.resolvers.SourceIdMangaCountGetResolver
 import eu.kanade.tachiyomi.data.database.tables.CategoryTable
 import eu.kanade.tachiyomi.data.database.tables.ChapterTable
@@ -29,9 +28,24 @@ interface MangaQueries : DbProvider {
             RawQuery.builder()
                 .query(libraryQuery)
                 .observesTables(MangaTable.TABLE, ChapterTable.TABLE, MangaCategoryTable.TABLE, CategoryTable.TABLE)
-                .build()
+                .build(),
         )
         .withGetResolver(LibraryMangaGetResolver.INSTANCE)
+        .prepare()
+
+    fun getDuplicateLibraryManga(manga: Manga) = db.get()
+        .`object`(Manga::class.java)
+        .withQuery(
+            Query.builder()
+                .table(MangaTable.TABLE)
+                .where("${MangaTable.COL_FAVORITE} = 1 AND LOWER(${MangaTable.COL_TITLE}) = ? AND ${MangaTable.COL_SOURCE} != ?")
+                .whereArgs(
+                    manga.title.lowercase(),
+                    manga.source,
+                )
+                .limit(1)
+                .build(),
+        )
         .prepare()
 
     fun getFavoriteMangas(sortByTitle: Boolean = true): PreparedGetListOfObjects<Manga> {
@@ -57,7 +71,7 @@ interface MangaQueries : DbProvider {
                 .table(MangaTable.TABLE)
                 .where("${MangaTable.COL_URL} = ? AND ${MangaTable.COL_SOURCE} = ?")
                 .whereArgs(url, sourceId)
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -68,7 +82,7 @@ interface MangaQueries : DbProvider {
                 .table(MangaTable.TABLE)
                 .where("${MangaTable.COL_ID} = ?")
                 .whereArgs(id)
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -78,7 +92,7 @@ interface MangaQueries : DbProvider {
             RawQuery.builder()
                 .query(getSourceIdsWithNonLibraryMangaQuery())
                 .observesTables(MangaTable.TABLE)
-                .build()
+                .build(),
         )
         .withGetResolver(SourceIdMangaCountGetResolver.INSTANCE)
         .prepare()
@@ -102,11 +116,6 @@ interface MangaQueries : DbProvider {
         .withPutResolver(MangaFlagsPutResolver(MangaTable.COL_VIEWER, Manga::viewer_flags))
         .prepare()
 
-    fun updateViewerFlags(manga: List<Manga>) = db.put()
-        .objects(manga)
-        .withPutResolver(MangaFlagsPutResolver(MangaTable.COL_VIEWER, Manga::viewer_flags))
-        .prepare()
-
     fun updateLastUpdated(manga: Manga) = db.put()
         .`object`(manga)
         .withPutResolver(MangaLastUpdatedPutResolver())
@@ -115,11 +124,6 @@ interface MangaQueries : DbProvider {
     fun updateMangaFavorite(manga: Manga) = db.put()
         .`object`(manga)
         .withPutResolver(MangaFavoritePutResolver())
-        .prepare()
-
-    fun updateMangaTitle(manga: Manga) = db.put()
-        .`object`(manga)
-        .withPutResolver(MangaTitlePutResolver())
         .prepare()
 
     fun updateMangaCoverLastModified(manga: Manga) = db.put()
@@ -137,7 +141,7 @@ interface MangaQueries : DbProvider {
                 .table(MangaTable.TABLE)
                 .where("${MangaTable.COL_FAVORITE} = ? AND ${MangaTable.COL_SOURCE} IN (${Queries.placeholders(sourceIds.size)})")
                 .whereArgs(0, *sourceIds.toTypedArray())
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -145,7 +149,7 @@ interface MangaQueries : DbProvider {
         .byQuery(
             DeleteQuery.builder()
                 .table(MangaTable.TABLE)
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -155,17 +159,7 @@ interface MangaQueries : DbProvider {
             RawQuery.builder()
                 .query(getLastReadMangaQuery())
                 .observesTables(MangaTable.TABLE)
-                .build()
-        )
-        .prepare()
-
-    fun getTotalChapterManga() = db.get()
-        .listOfObjects(Manga::class.java)
-        .withQuery(
-            RawQuery.builder()
-                .query(getTotalChapterMangaQuery())
-                .observesTables(MangaTable.TABLE)
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -175,7 +169,7 @@ interface MangaQueries : DbProvider {
             RawQuery.builder()
                 .query(getLatestChapterMangaQuery())
                 .observesTables(MangaTable.TABLE)
-                .build()
+                .build(),
         )
         .prepare()
 
@@ -185,7 +179,7 @@ interface MangaQueries : DbProvider {
             RawQuery.builder()
                 .query(getChapterFetchDateMangaQuery())
                 .observesTables(MangaTable.TABLE)
-                .build()
+                .build(),
         )
         .prepare()
 }

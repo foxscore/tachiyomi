@@ -3,15 +3,16 @@ package eu.kanade.tachiyomi.data.backup.full
 import android.content.Context
 import android.net.Uri
 import com.hippo.unifile.UniFile
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.backup.AbstractBackupManager
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_CATEGORY
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_CATEGORY_MASK
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_CHAPTER
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_CHAPTER_MASK
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_HISTORY
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_HISTORY_MASK
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_TRACK
-import eu.kanade.tachiyomi.data.backup.BackupCreateService.Companion.BACKUP_TRACK_MASK
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CATEGORY
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CATEGORY_MASK
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CHAPTER
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CHAPTER_MASK
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_HISTORY
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_HISTORY_MASK
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_TRACK
+import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_TRACK_MASK
 import eu.kanade.tachiyomi.data.backup.full.models.Backup
 import eu.kanade.tachiyomi.data.backup.full.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.full.models.BackupChapter
@@ -32,6 +33,7 @@ import logcat.LogPriority
 import okio.buffer
 import okio.gzip
 import okio.sink
+import java.io.FileOutputStream
 import kotlin.math.max
 
 class FullBackupManager(context: Context) : AbstractBackupManager(context) {
@@ -42,9 +44,9 @@ class FullBackupManager(context: Context) : AbstractBackupManager(context) {
      * Create backup Json file from database
      *
      * @param uri path of Uri
-     * @param isJob backup called from job
+     * @param isAutoBackup backup called from scheduled backup job
      */
-    override fun createBackup(uri: Uri, flags: Int, isJob: Boolean): String {
+    override fun createBackup(uri: Uri, flags: Int, isAutoBackup: Boolean): String {
         // Create root object
         var backup: Backup? = null
 
@@ -55,14 +57,14 @@ class FullBackupManager(context: Context) : AbstractBackupManager(context) {
                 backupManga(databaseManga, flags),
                 backupCategories(),
                 emptyList(),
-                backupExtensionInfo(databaseManga)
+                backupExtensionInfo(databaseManga),
             )
         }
 
         var file: UniFile? = null
         try {
             file = (
-                if (isJob) {
+                if (isAutoBackup) {
                     // Get dir of file and create
                     var dir = UniFile.fromUri(context, uri)
                     dir = dir.createDirectory("automatic")
@@ -84,8 +86,19 @@ class FullBackupManager(context: Context) : AbstractBackupManager(context) {
                 )
                 ?: throw Exception("Couldn't create backup file")
 
+            if (!file.isFile) {
+                throw IllegalStateException("Failed to get handle on file")
+            }
+
             val byteArray = parser.encodeToByteArray(BackupSerializer, backup!!)
-            file.openOutputStream().sink().gzip().buffer().use { it.write(byteArray) }
+            if (byteArray.isEmpty()) {
+                throw IllegalStateException(context.getString(R.string.empty_backup_error))
+            }
+
+            file.openOutputStream().also {
+                // Force overwrite old file
+                (it as? FileOutputStream)?.channel?.truncate(0)
+            }.sink().gzip().buffer().use { it.write(byteArray) }
             val fileUri = file.uri
 
             // Make sure it's a valid backup file
@@ -286,7 +299,7 @@ class FullBackupManager(context: Context) : AbstractBackupManager(context) {
                 }
             }
         }
-        databaseHelper.updateHistoryLastRead(historyToBeUpdated).executeAsBlocking()
+        databaseHelper.upsertHistoryLastRead(historyToBeUpdated).executeAsBlocking()
     }
 
     /**

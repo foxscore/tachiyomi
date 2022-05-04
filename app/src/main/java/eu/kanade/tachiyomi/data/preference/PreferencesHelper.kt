@@ -7,17 +7,18 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
+import eu.kanade.domain.source.interactor.SetMigrateSorting
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.track.TrackService
 import eu.kanade.tachiyomi.data.track.anilist.Anilist
-import eu.kanade.tachiyomi.ui.browse.migration.sources.MigrationSourcesController
 import eu.kanade.tachiyomi.ui.library.setting.DisplayModeSetting
 import eu.kanade.tachiyomi.ui.library.setting.SortDirectionSetting
 import eu.kanade.tachiyomi.ui.library.setting.SortModeSetting
 import eu.kanade.tachiyomi.ui.reader.setting.OrientationType
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingModeType
 import eu.kanade.tachiyomi.util.system.DeviceUtil
+import eu.kanade.tachiyomi.util.system.isDevFlavor
 import eu.kanade.tachiyomi.widget.ExtendedNavigationView
 import java.io.File
 import java.text.DateFormat
@@ -34,20 +35,16 @@ class PreferencesHelper(val context: Context) {
     private val defaultDownloadsDir = File(
         Environment.getExternalStorageDirectory().absolutePath + File.separator +
             context.getString(R.string.app_name),
-        "downloads"
+        "downloads",
     ).toUri()
 
     private val defaultBackupDir = File(
         Environment.getExternalStorageDirectory().absolutePath + File.separator +
             context.getString(R.string.app_name),
-        "backup"
+        "backup",
     ).toUri()
 
-    fun startScreen() = prefs.getInt(Keys.startScreen, 1)
-
     fun confirmExit() = prefs.getBoolean(Keys.confirmExit, false)
-
-    fun hideBottomBarOnScroll() = flowPrefs.getBoolean("pref_hide_bottom_bar_on_scroll", true)
 
     fun sideNavIconAlignment() = flowPrefs.getInt("pref_side_nav_icon_alignment", 0)
 
@@ -67,12 +64,12 @@ class PreferencesHelper(val context: Context) {
 
     fun themeMode() = flowPrefs.getEnum(
         "pref_theme_mode_key",
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { Values.ThemeMode.system } else { Values.ThemeMode.light }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { Values.ThemeMode.system } else { Values.ThemeMode.light },
     )
 
     fun appTheme() = flowPrefs.getEnum(
         "pref_app_theme",
-        if (DeviceUtil.isDynamicColorAvailable) { Values.AppTheme.MONET } else { Values.AppTheme.DEFAULT }
+        if (DeviceUtil.isDynamicColorAvailable) { Values.AppTheme.MONET } else { Values.AppTheme.DEFAULT },
     )
 
     fun themeDarkAmoled() = flowPrefs.getBoolean("pref_theme_dark_amoled_key", false)
@@ -129,11 +126,13 @@ class PreferencesHelper(val context: Context) {
 
     fun cropBorders() = flowPrefs.getBoolean("crop_borders", false)
 
+    fun navigateToPan() = flowPrefs.getBoolean("navigate_pan", true)
+
+    fun landscapeZoom() = flowPrefs.getBoolean("landscape_zoom", true)
+
     fun cropBordersWebtoon() = flowPrefs.getBoolean("crop_borders_webtoon", false)
 
     fun webtoonSidePadding() = flowPrefs.getInt("webtoon_side_padding", 0)
-
-    fun readWithTapping() = flowPrefs.getBoolean("reader_tap", true)
 
     fun pagerNavInverted() = flowPrefs.getEnum("reader_tapping_inverted", Values.TappingInvertMode.NONE)
 
@@ -158,8 +157,6 @@ class PreferencesHelper(val context: Context) {
     fun portraitColumns() = flowPrefs.getInt("pref_library_columns_portrait_key", 0)
 
     fun landscapeColumns() = flowPrefs.getInt("pref_library_columns_landscape_key", 0)
-
-    fun jumpToChapters() = prefs.getBoolean(Keys.jumpToChapters, false)
 
     fun autoUpdateTrack() = prefs.getBoolean(Keys.autoUpdateTrack, true)
 
@@ -201,11 +198,11 @@ class PreferencesHelper(val context: Context) {
 
     fun downloadOnlyOverWifi() = prefs.getBoolean(Keys.downloadOnlyOverWifi, true)
 
-    fun saveChaptersAsCBZ() = flowPrefs.getBoolean("save_chapter_as_cbz", false)
+    fun saveChaptersAsCBZ() = flowPrefs.getBoolean("save_chapter_as_cbz", true)
 
     fun folderPerManga() = prefs.getBoolean(Keys.folderPerManga, false)
 
-    fun numberOfBackups() = flowPrefs.getInt("backup_slots", 1)
+    fun numberOfBackups() = flowPrefs.getInt("backup_slots", 2)
 
     fun backupInterval() = flowPrefs.getInt("backup_interval", 0)
 
@@ -220,7 +217,7 @@ class PreferencesHelper(val context: Context) {
     fun libraryUpdateInterval() = flowPrefs.getInt("pref_library_update_interval_key", 24)
 
     fun libraryUpdateDeviceRestriction() = flowPrefs.getStringSet("library_update_restriction", setOf(DEVICE_ONLY_ON_WIFI))
-    fun libraryUpdateMangaRestriction() = flowPrefs.getStringSet("library_update_manga_restriction", setOf(MANGA_FULLY_READ, MANGA_ONGOING))
+    fun libraryUpdateMangaRestriction() = flowPrefs.getStringSet("library_update_manga_restriction", setOf(MANGA_HAS_UNREAD, MANGA_NON_COMPLETED, MANGA_NON_READ))
 
     fun showUpdatesNavBadge() = flowPrefs.getBoolean("library_update_show_tab_badge", false)
     fun unreadUpdatesCount() = flowPrefs.getInt("library_unread_updates_count", 0)
@@ -248,6 +245,8 @@ class PreferencesHelper(val context: Context) {
 
     fun filterUnread() = flowPrefs.getInt(Keys.filterUnread, ExtendedNavigationView.Item.TriStateGroup.State.IGNORE.value)
 
+    fun filterStarted() = flowPrefs.getInt(Keys.filterStarted, ExtendedNavigationView.Item.TriStateGroup.State.IGNORE.value)
+
     fun filterCompleted() = flowPrefs.getInt(Keys.filterCompleted, ExtendedNavigationView.Item.TriStateGroup.State.IGNORE.value)
 
     fun filterTracking(name: Int) = flowPrefs.getInt("${Keys.filterTracked}_$name", ExtendedNavigationView.Item.TriStateGroup.State.IGNORE.value)
@@ -255,8 +254,8 @@ class PreferencesHelper(val context: Context) {
     fun librarySortingMode() = flowPrefs.getEnum(Keys.librarySortingMode, SortModeSetting.ALPHABETICAL)
     fun librarySortingAscending() = flowPrefs.getEnum(Keys.librarySortingDirection, SortDirectionSetting.ASCENDING)
 
-    fun migrationSortingMode() = flowPrefs.getEnum(Keys.migrationSortingMode, MigrationSourcesController.SortSetting.ALPHABETICAL)
-    fun migrationSortingDirection() = flowPrefs.getEnum(Keys.migrationSortingDirection, MigrationSourcesController.DirectionSetting.ASCENDING)
+    fun migrationSortingMode() = flowPrefs.getEnum(Keys.migrationSortingMode, SetMigrateSorting.Mode.ALPHABETICAL)
+    fun migrationSortingDirection() = flowPrefs.getEnum(Keys.migrationSortingDirection, SetMigrateSorting.Direction.ASCENDING)
 
     fun automaticExtUpdates() = flowPrefs.getBoolean("automatic_ext_updates", true)
 
@@ -273,10 +272,10 @@ class PreferencesHelper(val context: Context) {
 
     fun pinnedSources() = flowPrefs.getStringSet("pinned_catalogues", emptySet())
 
-    fun downloadNew() = flowPrefs.getBoolean("download_new", false)
+    fun downloadNewChapter() = flowPrefs.getBoolean("download_new", false)
 
-    fun downloadNewCategories() = flowPrefs.getStringSet("download_new_categories", emptySet())
-    fun downloadNewCategoriesExclude() = flowPrefs.getStringSet("download_new_categories_exclude", emptySet())
+    fun downloadNewChapterCategories() = flowPrefs.getStringSet("download_new_categories", emptySet())
+    fun downloadNewChapterCategoriesExclude() = flowPrefs.getStringSet("download_new_categories_exclude", emptySet())
 
     fun defaultCategory() = prefs.getInt(Keys.defaultCategory, -1)
 
@@ -312,12 +311,14 @@ class PreferencesHelper(val context: Context) {
 
     fun extensionInstaller() = flowPrefs.getEnum(
         "extension_installer",
-        if (DeviceUtil.isMiui) Values.ExtensionInstaller.LEGACY else Values.ExtensionInstaller.PACKAGEINSTALLER
+        if (DeviceUtil.isMiui) Values.ExtensionInstaller.LEGACY else Values.ExtensionInstaller.PACKAGEINSTALLER,
     )
 
-    fun verboseLogging() = prefs.getBoolean(Keys.verboseLogging, false)
+    fun verboseLogging() = prefs.getBoolean(Keys.verboseLogging, isDevFlavor)
 
     fun autoClearChapterCache() = prefs.getBoolean(Keys.autoClearChapterCache, false)
+
+    fun duplicatePinnedSources() = flowPrefs.getBoolean("duplicate_pinned_sources", false)
 
     fun setChapterSettingsDefault(manga: Manga) {
         prefs.edit {

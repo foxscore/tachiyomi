@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.app.PendingIntent
@@ -8,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Looper
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
@@ -20,18 +22,22 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import coil.disk.DiskCache
 import coil.util.DebugLogger
-import eu.kanade.tachiyomi.data.coil.ByteBufferFetcher
+import eu.kanade.domain.DomainModule
 import eu.kanade.tachiyomi.data.coil.MangaCoverFetcher
+import eu.kanade.tachiyomi.data.coil.MangaCoverKeyer
 import eu.kanade.tachiyomi.data.coil.TachiyomiImageDecoder
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.data.preference.PreferenceValues
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.network.NetworkHelper
-import eu.kanade.tachiyomi.ui.security.SecureActivityDelegate
+import eu.kanade.tachiyomi.ui.base.delegate.SecureActivityDelegate
 import eu.kanade.tachiyomi.util.preference.asImmediateFlow
 import eu.kanade.tachiyomi.util.system.AuthenticatorUtil
+import eu.kanade.tachiyomi.util.system.WebViewUtil
 import eu.kanade.tachiyomi.util.system.animatorDurationScale
+import eu.kanade.tachiyomi.util.system.isDevFlavor
 import eu.kanade.tachiyomi.util.system.logcat
 import eu.kanade.tachiyomi.util.system.notification
 import kotlinx.coroutines.flow.launchIn
@@ -54,6 +60,7 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
 
     private val disableIncognitoReceiver = DisableIncognitoReceiver()
 
+    @SuppressLint("LaunchActivityFromNotification")
     override fun onCreate() {
         super<Application>.onCreate()
 
@@ -69,6 +76,7 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
         }
 
         Injekt.importModule(AppModule(this))
+        Injekt.importModule(DomainModule())
 
         setupAcra()
         setupNotificationChannels()
@@ -91,7 +99,7 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
                             this@App,
                             0,
                             Intent(ACTION_DISABLE_INCOGNITO_MODE),
-                            PendingIntent.FLAG_ONE_SHOT
+                            PendingIntent.FLAG_ONE_SHOT,
                         )
                         setContentIntent(pendingIntent)
                     }
@@ -110,7 +118,7 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
                         PreferenceValues.ThemeMode.light -> AppCompatDelegate.MODE_NIGHT_NO
                         PreferenceValues.ThemeMode.dark -> AppCompatDelegate.MODE_NIGHT_YES
                         PreferenceValues.ThemeMode.system -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                    }
+                    },
                 )
             }.launchIn(ProcessLifecycleOwner.get().lifecycleScope)
 
@@ -121,17 +129,20 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this).apply {
-            componentRegistry {
+            val callFactoryInit = { Injekt.get<NetworkHelper>().client }
+            val diskCacheInit = { CoilDiskCache.get(this@App) }
+            components {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    add(ImageDecoderDecoder(this@App))
+                    add(ImageDecoderDecoder.Factory())
                 } else {
-                    add(GifDecoder())
+                    add(GifDecoder.Factory())
                 }
-                add(TachiyomiImageDecoder(this@App.resources))
-                add(ByteBufferFetcher())
-                add(MangaCoverFetcher())
+                add(TachiyomiImageDecoder.Factory())
+                add(MangaCoverFetcher.Factory(lazy(callFactoryInit), lazy(diskCacheInit)))
+                add(MangaCoverKeyer())
             }
-            okHttpClient(Injekt.get<NetworkHelper>().coilClient)
+            callFactory(callFactoryInit)
+            diskCache(diskCacheInit)
             crossfade((300 * this@App.animatorDurationScale).toInt())
             allowRgb565(getSystemService<ActivityManager>()!!.isLowRamDevice)
             if (preferences.verboseLogging()) logger(DebugLogger())
@@ -144,11 +155,32 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
         }
     }
 
+    override fun getPackageName(): String {
+        // This causes freezes in Android 6/7 for some reason
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                // Override the value passed as X-Requested-With in WebView requests
+                val stackTrace = Looper.getMainLooper().thread.stackTrace
+                val chromiumElement = stackTrace.find {
+                    it.className.equals(
+                        "org.chromium.base.BuildInfo",
+                        ignoreCase = true,
+                    )
+                }
+                if (chromiumElement?.methodName.equals("getAll", ignoreCase = true)) {
+                    return WebViewUtil.SPOOF_PACKAGE_NAME
+                }
+            } catch (e: Exception) {
+            }
+        }
+        return super.getPackageName()
+    }
+
     protected open fun setupAcra() {
-        if (BuildConfig.FLAVOR != "dev") {
+        if (isDevFlavor.not()) {
             initAcra {
                 buildConfigClass = BuildConfig::class.java
-                excludeMatchingSharedPreferencesKeys = arrayOf(".*username.*", ".*password.*", ".*token.*")
+                excludeMatchingSharedPreferencesKeys = listOf(".*username.*", ".*password.*", ".*token.*")
 
                 httpSender {
                     uri = BuildConfig.ACRA_URI
@@ -190,3 +222,24 @@ open class App : Application(), DefaultLifecycleObserver, ImageLoaderFactory {
 }
 
 private const val ACTION_DISABLE_INCOGNITO_MODE = "tachi.action.DISABLE_INCOGNITO_MODE"
+
+/**
+ * Direct copy of Coil's internal SingletonDiskCache so that [MangaCoverFetcher] can access it.
+ */
+internal object CoilDiskCache {
+
+    private const val FOLDER_NAME = "image_cache"
+    private var instance: DiskCache? = null
+
+    @Synchronized
+    fun get(context: Context): DiskCache {
+        return instance ?: run {
+            val safeCacheDir = context.cacheDir.apply { mkdirs() }
+            // Create the singleton disk cache instance.
+            DiskCache.Builder()
+                .directory(safeCacheDir.resolve(FOLDER_NAME))
+                .build()
+                .also { instance = it }
+        }
+    }
+}
