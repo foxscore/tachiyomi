@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -100,6 +101,7 @@ fun MangaInfoBox(
     status: Long,
     onCoverClick: () -> Unit,
     doSearch: (query: String, global: Boolean) -> Unit,
+    missingChapters: Int?,
 ) {
     Box(modifier = modifier) {
         // Backdrop
@@ -137,6 +139,7 @@ fun MangaInfoBox(
                     status = status,
                     sourceName = sourceName,
                     isStubSource = isStubSource,
+                    missingChapters = missingChapters,
                 )
             } else {
                 MangaAndSourceTitlesLarge(
@@ -440,6 +443,7 @@ private fun MangaAndSourceTitlesSmall(
     status: Long,
     sourceName: String,
     isStubSource: Boolean,
+    missingChapters: Int?,
 ) {
     Row(
         modifier = Modifier
@@ -503,6 +507,39 @@ private fun MangaAndSourceTitlesSmall(
                             onClick = { doSearch(artist, true) },
                         ),
                 )
+            }
+            // Missing chapters
+            if (missingChapters != null && missingChapters > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.secondaryItemAlpha(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Warning,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                        Text(
+//                            text = stringResource(
+//                                R.string.missing_chapters,
+//                                missingChapters,
+//                            ),
+                            // Plural string
+                            text = pluralStringResource(
+                                id = R.plurals.missing_chapters,
+                                count = missingChapters,
+                                missingChapters,
+                            ),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(

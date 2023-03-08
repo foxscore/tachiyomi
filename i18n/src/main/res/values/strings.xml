@@ -613,6 +613,10 @@
     <string name="date">Date</string>
 
     <!-- Manga info fragment -->
+    <plurals name="missing_chapters">
+        <item quantity="one">Missing %1$s chapter</item>
+        <item quantity="other">Missing %1$s chapters</item>
+    </plurals>
     <string name="ongoing">Ongoing</string>
     <string name="unknown">Unknown</string>
     <string name="unknown_author">Unknown author</string>
