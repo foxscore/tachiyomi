@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Help
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Schedule
@@ -509,7 +510,30 @@ private fun MangaAndSourceTitlesSmall(
                 )
             }
             // Missing chapters
-            if (missingChapters != null && missingChapters > 0) {
+            if (missingChapters == null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                // Show the R.string.missing_chapters_unknown string, along with an icon
+                Row(
+                    modifier = Modifier.secondaryItemAlpha(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Help,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                        Text(
+                            text = stringResource(R.string.missing_chapters_unknown),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            } else if (missingChapters > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.secondaryItemAlpha(),
