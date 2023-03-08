@@ -377,10 +377,8 @@ private fun MangaAndSourceTitlesLarge(
                 textAlign = TextAlign.Center,
             )
         }
-        // Missing chapters
         if (missingChapters == null) {
             Spacer(modifier = Modifier.height(4.dp))
-            // Show the R.string.missing_chapters_unknown string, along with an icon
             Row(
                 modifier = Modifier.secondaryItemAlpha(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -417,11 +415,6 @@ private fun MangaAndSourceTitlesLarge(
                 )
                 ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
                     Text(
-//                            text = stringResource(
-//                                R.string.missing_chapters,
-//                                missingChapters,
-//                            ),
-                        // Plural string
                         text = pluralStringResource(
                             id = R.plurals.missing_chapters,
                             count = missingChapters,
@@ -567,10 +560,8 @@ private fun MangaAndSourceTitlesSmall(
                         ),
                 )
             }
-            // Missing chapters
             if (missingChapters == null) {
                 Spacer(modifier = Modifier.height(4.dp))
-                // Show the R.string.missing_chapters_unknown string, along with an icon
                 Row(
                     modifier = Modifier.secondaryItemAlpha(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -607,11 +598,6 @@ private fun MangaAndSourceTitlesSmall(
                     )
                     ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
                         Text(
-//                            text = stringResource(
-//                                R.string.missing_chapters,
-//                                missingChapters,
-//                            ),
-                            // Plural string
                             text = pluralStringResource(
                                 id = R.plurals.missing_chapters,
                                 count = missingChapters,
