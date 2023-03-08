@@ -155,6 +155,7 @@ fun MangaInfoBox(
                     status = status,
                     sourceName = sourceName,
                     isStubSource = isStubSource,
+                    missingChapters = missingChapters,
                 )
             }
         }
@@ -318,6 +319,7 @@ private fun MangaAndSourceTitlesLarge(
     status: Long,
     sourceName: String,
     isStubSource: Boolean,
+    missingChapters: Int?,
 ) {
     Column(
         modifier = Modifier
@@ -374,6 +376,62 @@ private fun MangaAndSourceTitlesLarge(
                     ),
                 textAlign = TextAlign.Center,
             )
+        }
+        // Missing chapters
+        if (missingChapters == null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            // Show the R.string.missing_chapters_unknown string, along with an icon
+            Row(
+                modifier = Modifier.secondaryItemAlpha(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Help,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .size(16.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                    Text(
+                        text = stringResource(R.string.missing_chapters_unknown),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                }
+            }
+        } else if (missingChapters > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.secondaryItemAlpha(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Warning,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .size(16.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                    Text(
+//                            text = stringResource(
+//                                R.string.missing_chapters,
+//                                missingChapters,
+//                            ),
+                        // Plural string
+                        text = pluralStringResource(
+                            id = R.plurals.missing_chapters,
+                            count = missingChapters,
+                            missingChapters,
+                        ),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Row(
