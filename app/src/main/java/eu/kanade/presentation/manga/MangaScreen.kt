@@ -62,6 +62,7 @@ import eu.kanade.tachiyomi.source.getNameForMangaInfo
 import eu.kanade.tachiyomi.ui.manga.ChapterItem
 import eu.kanade.tachiyomi.ui.manga.MangaScreenState
 import eu.kanade.tachiyomi.ui.manga.chapterDecimalFormat
+import eu.kanade.tachiyomi.util.countMissingChapters
 import eu.kanade.tachiyomi.util.lang.toRelativeString
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import tachiyomi.domain.chapter.model.Chapter
@@ -77,7 +78,6 @@ import tachiyomi.presentation.core.util.isScrolledToEnd
 import tachiyomi.presentation.core.util.isScrollingUp
 import java.text.DateFormat
 import java.util.Date
-import eu.kanade.tachiyomi.util.countMissingChapters
 
 @Composable
 fun MangaScreen(

@@ -66,7 +66,9 @@ fun ChapterHeader(
 @Composable
 private fun DrawWarning(text: String) {
     AssistChip(
-        onClick = { /* TODO Show missing chapters */ },
+        onClick = {
+            // TODO Show missing chapters
+        },
         label = {
             Text(
                 text = text,
