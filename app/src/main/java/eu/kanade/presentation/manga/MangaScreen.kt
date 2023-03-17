@@ -77,7 +77,7 @@ import tachiyomi.presentation.core.util.isScrolledToEnd
 import tachiyomi.presentation.core.util.isScrollingUp
 import java.text.DateFormat
 import java.util.Date
-import eu.kanade.tachiyomi.util.getMissingChapters as getMissingChapters
+import eu.kanade.tachiyomi.util.countMissingChapters
 
 @Composable
 fun MangaScreen(
@@ -356,7 +356,7 @@ private fun MangaScreenSmallImpl(
                             status = state.manga.status,
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
-                            missingChapters = getMissingChapters(state.chapters)?.size,
+                            missingChapters = countMissingChapters(state.chapters),
                         )
                     }
 
@@ -567,7 +567,7 @@ fun MangaScreenLargeImpl(
                             status = state.manga.status,
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
-                            missingChapters = getMissingChapters(state.chapters)?.size,
+                            missingChapters = countMissingChapters(state.chapters),
                         )
                         MangaActionRow(
                             favorite = state.manga.favorite,
