@@ -356,7 +356,6 @@ private fun MangaScreenSmallImpl(
                             status = state.manga.status,
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
-                            missingChapters = countMissingChapters(state.chapters),
                         )
                     }
 
@@ -568,7 +567,6 @@ fun MangaScreenLargeImpl(
                             status = state.manga.status,
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
-                            missingChapters = countMissingChapters(state.chapters),
                         )
                         MangaActionRow(
                             favorite = state.manga.favorite,

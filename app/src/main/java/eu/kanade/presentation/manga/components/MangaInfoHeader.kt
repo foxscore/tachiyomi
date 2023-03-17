@@ -100,7 +100,6 @@ fun MangaInfoBox(
     status: Long,
     onCoverClick: () -> Unit,
     doSearch: (query: String, global: Boolean) -> Unit,
-    missingChapters: Int?,
 ) {
     Box(modifier = modifier) {
         // Backdrop
@@ -372,6 +371,7 @@ private fun MangaAndSourceTitlesLarge(
                 textAlign = TextAlign.Center,
             )
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Row(
             modifier = Modifier.secondaryItemAlpha(),
             verticalAlignment = Alignment.CenterVertically,
@@ -504,6 +504,7 @@ private fun MangaAndSourceTitlesSmall(
                         ),
                 )
             }
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.secondaryItemAlpha(),
                 verticalAlignment = Alignment.CenterVertically,
