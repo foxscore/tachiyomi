@@ -395,6 +395,7 @@ private fun MangaScreenSmallImpl(
                         ChapterHeader(
                             enabled = chapters.fastAll { !it.selected },
                             chapterCount = chapters.size,
+                            missingChapters = countMissingChapters(chapters),
                             onClick = onFilterClicked,
                         )
                     }
@@ -607,6 +608,7 @@ fun MangaScreenLargeImpl(
                                 ChapterHeader(
                                     enabled = chapters.fastAll { !it.selected },
                                     chapterCount = chapters.size,
+                                    missingChapters = countMissingChapters(chapters),
                                     onClick = onFilterButtonClicked,
                                 )
                             }

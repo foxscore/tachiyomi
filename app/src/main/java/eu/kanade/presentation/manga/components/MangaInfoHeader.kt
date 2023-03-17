@@ -32,12 +32,10 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Help
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -140,7 +138,6 @@ fun MangaInfoBox(
                     status = status,
                     sourceName = sourceName,
                     isStubSource = isStubSource,
-                    missingChapters = missingChapters,
                 )
             } else {
                 MangaAndSourceTitlesLarge(
@@ -155,7 +152,6 @@ fun MangaInfoBox(
                     status = status,
                     sourceName = sourceName,
                     isStubSource = isStubSource,
-                    missingChapters = missingChapters,
                 )
             }
         }
@@ -319,7 +315,6 @@ private fun MangaAndSourceTitlesLarge(
     status: Long,
     sourceName: String,
     isStubSource: Boolean,
-    missingChapters: Int?,
 ) {
     Column(
         modifier = Modifier
@@ -377,56 +372,6 @@ private fun MangaAndSourceTitlesLarge(
                 textAlign = TextAlign.Center,
             )
         }
-        if (missingChapters == null) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.secondaryItemAlpha(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Help,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(16.dp),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-                ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                    Text(
-                        text = stringResource(R.string.missing_chapters_unknown),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                }
-            }
-        } else if (missingChapters > 0) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.secondaryItemAlpha(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Warning,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(16.dp),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-                ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                    Text(
-                        text = pluralStringResource(
-                            id = R.plurals.missing_chapters,
-                            count = missingChapters,
-                            missingChapters,
-                        ),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
         Row(
             modifier = Modifier.secondaryItemAlpha(),
             verticalAlignment = Alignment.CenterVertically,
@@ -495,7 +440,6 @@ private fun MangaAndSourceTitlesSmall(
     status: Long,
     sourceName: String,
     isStubSource: Boolean,
-    missingChapters: Int?,
 ) {
     Row(
         modifier = Modifier
@@ -560,56 +504,6 @@ private fun MangaAndSourceTitlesSmall(
                         ),
                 )
             }
-            if (missingChapters == null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.secondaryItemAlpha(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Help,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(end = 4.dp)
-                            .size(16.dp),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                        Text(
-                            text = stringResource(R.string.missing_chapters_unknown),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            } else if (missingChapters > 0) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.secondaryItemAlpha(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Warning,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(end = 4.dp)
-                            .size(16.dp),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                        Text(
-                            text = pluralStringResource(
-                                id = R.plurals.missing_chapters,
-                                count = missingChapters,
-                                missingChapters,
-                            ),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.secondaryItemAlpha(),
                 verticalAlignment = Alignment.CenterVertically,
