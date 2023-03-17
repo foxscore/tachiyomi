@@ -17,15 +17,15 @@ public fun countMissingChapters(chaptersInput: List<ChapterItem>): Int? {
     val chapters = chaptersInput.sortedBy { it.chapter.chapterNumber }.reversed()
     var currentChapter = 0f
 
-    // Get and evaluate most recent chapter
-    var prevChapter = chapters[0].chapter.chapterNumber
-
     // If the first chapter is equal to or greater than 2, there are missing chapters
-    if (prevChapter >= 2) {
+    if (chapters.last().chapter.chapterNumber >= 2) {
         // The chapter number might be, for example, 16.5, (with 16 being the previous one)
         // so we need to round it up
-        count = ceil(prevChapter.toDouble()).toInt() - 1
+        count = ceil(chapters.last().chapter.chapterNumber.toDouble()).toInt() - 1
     }
+
+    // Get and evaluate most recent chapter
+    var prevChapter = chapters[0].chapter.chapterNumber
 
     // Evaluate chapters from most to least recent
     for (i in 1 until chapters.count()) {
