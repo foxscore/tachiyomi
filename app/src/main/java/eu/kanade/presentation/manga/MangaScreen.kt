@@ -62,7 +62,7 @@ import eu.kanade.tachiyomi.source.getNameForMangaInfo
 import eu.kanade.tachiyomi.ui.manga.ChapterItem
 import eu.kanade.tachiyomi.ui.manga.MangaScreenState
 import eu.kanade.tachiyomi.ui.manga.chapterDecimalFormat
-import eu.kanade.tachiyomi.util.countMissingChapters
+import tachiyomi.domain.chapter.service.countMissingChapters
 import eu.kanade.tachiyomi.util.lang.toRelativeString
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import tachiyomi.domain.chapter.model.Chapter
