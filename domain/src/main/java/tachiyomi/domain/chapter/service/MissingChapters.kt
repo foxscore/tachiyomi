@@ -3,7 +3,11 @@ package tachiyomi.domain.chapter.service
 import kotlin.math.floor
 
 fun countMissingChapters(chaptersInput: List<Float>): Int? {
-    var chapters = chaptersInput
+    if (chaptersInput.isEmpty()) {
+        return 0
+    }
+
+    val chapters = chaptersInput
         // Remove any invalid chapters
         .filter { it != -1f }
         // Convert to integers, as we cannot check if 16.5 is missing
@@ -13,7 +17,7 @@ fun countMissingChapters(chaptersInput: List<Float>): Int? {
         .sortedBy { it }
 
     if (chapters.isEmpty()) {
-        return 0
+        return null
     }
 
     var missingChaptersCount = 0
