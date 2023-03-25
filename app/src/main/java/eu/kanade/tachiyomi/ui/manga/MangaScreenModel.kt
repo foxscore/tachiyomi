@@ -14,9 +14,7 @@ import eu.kanade.domain.chapter.interactor.SetReadStatus
 import eu.kanade.domain.chapter.interactor.SyncChaptersWithSource
 import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.manga.model.downloadedFilter
-import eu.kanade.domain.manga.model.isLocal
 import eu.kanade.domain.manga.model.toSManga
-import eu.kanade.domain.track.model.toDbTrack
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
@@ -72,6 +70,7 @@ import tachiyomi.domain.manga.model.TriStateFilter
 import tachiyomi.domain.manga.model.applyFilter
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.text.DecimalFormat
@@ -883,10 +882,9 @@ class MangaInfoScreenModel(
             getTracks.subscribe(manga.id)
                 .catch { logcat(LogPriority.ERROR, it) }
                 .map { tracks ->
-                    val dbTracks = tracks.map { it.toDbTrack() }
                     loggedServices
                         // Map to TrackItem
-                        .map { service -> TrackItem(dbTracks.find { it.sync_id.toLong() == service.id }, service) }
+                        .map { service -> TrackItem(tracks.find { it.syncId == service.id }, service) }
                         // Show only if the service supports this manga's source
                         .filter { (it.service as? EnhancedTrackService)?.accept(source!!) ?: true }
                 }
@@ -956,6 +954,14 @@ class MangaInfoScreenModel(
             }
         }
     }
+
+    private val Throwable.snackbarMessage: String
+        get() = when (val className = this::class.simpleName) {
+            null -> message ?: ""
+            "SourceNotInstalledException" -> context.getString(R.string.loader_not_implemented_error)
+            "Exception", "HttpException", "IOException" -> message ?: className
+            else -> "$className: $message"
+        }
 }
 
 sealed class MangaScreenState {
@@ -1016,10 +1022,3 @@ val chapterDecimalFormat = DecimalFormat(
     DecimalFormatSymbols()
         .apply { decimalSeparator = '.' },
 )
-
-private val Throwable.snackbarMessage: String
-    get() = when (val className = this::class.simpleName) {
-        null -> message ?: ""
-        "Exception", "HttpException", "IOException", "SourceNotInstalledException" -> message ?: className
-        else -> "$className: $message"
-    }

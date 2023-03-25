@@ -1,5 +1,6 @@
 package eu.kanade.presentation.track
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import eu.kanade.domain.track.model.toDbTrack
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.track.components.TrackLogoIcon
 import eu.kanade.tachiyomi.R
@@ -83,10 +85,10 @@ fun TrackInfoDialogHome(
                 TrackInfoItem(
                     title = item.track.title,
                     service = item.service,
-                    status = item.service.getStatus(item.track.status),
+                    status = item.service.getStatus(item.track.status.toInt()),
                     onStatusClick = { onStatusClick(item) },
-                    chapters = "${item.track.last_chapter_read.toInt()}".let {
-                        val totalChapters = item.track.total_chapters
+                    chapters = "${item.track.lastChapterRead.toInt()}".let {
+                        val totalChapters = item.track.totalChapters
                         if (totalChapters > 0) {
                             // Add known total chapter count
                             "$it / $totalChapters"
@@ -95,16 +97,16 @@ fun TrackInfoDialogHome(
                         }
                     },
                     onChaptersClick = { onChapterClick(item) },
-                    score = item.service.displayScore(item.track)
+                    score = item.service.displayScore(item.track.toDbTrack())
                         .takeIf { supportsScoring && item.track.score != 0F },
                     onScoreClick = { onScoreClick(item) }
                         .takeIf { supportsScoring },
-                    startDate = remember(item.track.started_reading_date) { dateFormat.format(item.track.started_reading_date) }
-                        .takeIf { supportsReadingDates && item.track.started_reading_date != 0L },
+                    startDate = remember(item.track.startDate) { dateFormat.format(item.track.startDate) }
+                        .takeIf { supportsReadingDates && item.track.startDate != 0L },
                     onStartDateClick = { onStartDateEdit(item) } // TODO
                         .takeIf { supportsReadingDates },
-                    endDate = dateFormat.format(item.track.finished_reading_date)
-                        .takeIf { supportsReadingDates && item.track.finished_reading_date != 0L },
+                    endDate = dateFormat.format(item.track.finishDate)
+                        .takeIf { supportsReadingDates && item.track.finishDate != 0L },
                     onEndDateClick = { onEndDateEdit(item) }
                         .takeIf { supportsReadingDates },
                     onNewSearch = { onNewSearch(item) },
@@ -125,7 +127,7 @@ fun TrackInfoDialogHome(
 private fun TrackInfoItem(
     title: String,
     service: TrackService,
-    status: String,
+    @StringRes status: Int?,
     onStatusClick: () -> Unit,
     chapters: String,
     onChaptersClick: () -> Unit,
@@ -187,7 +189,7 @@ private fun TrackInfoItem(
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     TrackDetailsItem(
                         modifier = Modifier.weight(1f),
-                        text = status,
+                        text = status?.let { stringResource(it) } ?: "",
                         onClick = onStatusClick,
                     )
                     VerticalDivider()

@@ -41,7 +41,7 @@ import tachiyomi.presentation.core.util.isScrolledToStart
 fun TrackStatusSelector(
     selection: Int,
     onSelectionChange: (Int) -> Unit,
-    selections: Map<Int, String>,
+    selections: Map<Int, Int?>,
     onConfirm: () -> Unit,
     onDismissRequest: () -> Unit,
 ) {
@@ -69,7 +69,7 @@ fun TrackStatusSelector(
                                 onClick = null,
                             )
                             Text(
-                                text = value,
+                                text = value?.let { stringResource(it) } ?: "",
                                 style = MaterialTheme.typography.bodyLarge.merge(),
                                 modifier = Modifier.padding(start = 24.dp),
                             )
@@ -145,12 +145,14 @@ fun TrackDateSelector(
     )
     AlertDialogContent(
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars),
+        title = { Text(text = title) },
         content = {
             Column {
                 DatePicker(
                     state = pickerState,
-                    title = { Text(text = title) },
                     dateValidator = dateValidator,
+                    title = null,
+                    headline = null,
                     showModeToggle = false,
                 )
 

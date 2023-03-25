@@ -4,8 +4,6 @@ import android.content.Context
 import com.hippo.unifile.UniFile
 import com.jakewharton.rxrelay.PublishRelay
 import eu.kanade.domain.chapter.model.toSChapter
-import eu.kanade.domain.manga.model.COMIC_INFO_FILE
-import eu.kanade.domain.manga.model.ComicInfo
 import eu.kanade.domain.manga.model.getComicInfo
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.cache.ChapterCache
@@ -39,6 +37,8 @@ import rx.Observable
 import rx.Subscription
 import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
+import tachiyomi.core.metadata.comicinfo.COMIC_INFO_FILE
+import tachiyomi.core.metadata.comicinfo.ComicInfo
 import tachiyomi.core.util.lang.awaitSingle
 import tachiyomi.core.util.lang.launchIO
 import tachiyomi.core.util.lang.launchNow
@@ -66,11 +66,6 @@ import java.util.zip.ZipOutputStream
  *
  * The queue manipulation must be done in one thread (currently the main thread) to avoid unexpected
  * behavior, but it's safe to read it from multiple threads.
- *
- * @param context the application context.
- * @param provider the downloads directory provider.
- * @param cache the downloads cache, used to add the downloads to the cache after their completion.
- * @param sourceManager the source manager.
  */
 class Downloader(
     private val context: Context,
@@ -90,7 +85,7 @@ class Downloader(
     /**
      * Queue where active downloads are kept.
      */
-    val _queueState = MutableStateFlow<List<Download>>(emptyList())
+    private val _queueState = MutableStateFlow<List<Download>>(emptyList())
     val queueState = _queueState.asStateFlow()
 
     /**
@@ -140,7 +135,7 @@ class Downloader(
 
         initializeSubscription()
 
-        val pending = queueState.value.filter { it: Download -> it.status != Download.State.DOWNLOADED }
+        val pending = queueState.value.filter { it.status != Download.State.DOWNLOADED }
         pending.forEach { if (it.status != Download.State.QUEUE) it.status = Download.State.QUEUE }
 
         isPaused = false
@@ -266,7 +261,7 @@ class Downloader(
         // Runs in main thread (synchronization needed).
         val chaptersToQueue = chaptersWithoutDir.await()
             // Filter out those already enqueued.
-            .filter { chapter -> queueState.value.none { it: Download -> it.chapter.id == chapter.id } }
+            .filter { chapter -> queueState.value.none { it.chapter.id == chapter.id } }
             // Create a download for each one.
             .map { Download(source, manga, it) }
 
@@ -280,7 +275,7 @@ class Downloader(
 
             // Start downloader if needed
             if (autoStart && wasEmpty) {
-                val queuedDownloads = queueState.value.count { it: Download -> it.source !is UnmeteredSource }
+                val queuedDownloads = queueState.value.count { it.source !is UnmeteredSource }
                 val maxDownloadsFromSource = queueState.value
                     .groupBy { it.source }
                     .filterKeys { it !is UnmeteredSource }
@@ -410,10 +405,8 @@ class Downloader(
             }
 
             // When the page is ready, set page path, progress (just in case) and status
-            val success = splitTallImageIfNeeded(page, tmpDir)
-            if (!success) {
-                notifier.onError(context.getString(R.string.download_notifier_split_failed), download.chapter.name, download.manga.title)
-            }
+            splitTallImageIfNeeded(page, tmpDir)
+
             page.uri = file.uri
             page.progress = 100
             page.status = Page.State.READY
@@ -501,21 +494,20 @@ class Downloader(
         return ImageUtil.getExtensionFromMimeType(mime)
     }
 
-    private fun splitTallImageIfNeeded(page: Page, tmpDir: UniFile): Boolean {
-        if (!downloadPreferences.splitTallImages().get()) return true
+    private fun splitTallImageIfNeeded(page: Page, tmpDir: UniFile) {
+        if (!downloadPreferences.splitTallImages().get()) return
 
-        val filenamePrefix = String.format("%03d", page.number)
-        val imageFile = tmpDir.listFiles()?.firstOrNull { it.name.orEmpty().startsWith(filenamePrefix) }
-            ?: throw Error(context.getString(R.string.download_notifier_split_page_not_found, page.number))
+        try {
+            val filenamePrefix = String.format("%03d", page.number)
+            val imageFile = tmpDir.listFiles()?.firstOrNull { it.name.orEmpty().startsWith(filenamePrefix) }
+                ?: error(context.getString(R.string.download_notifier_split_page_not_found, page.number))
 
-        // If the original page was previously split, then skip
-        if (imageFile.name.orEmpty().startsWith("${filenamePrefix}__")) return true
+            // If the original page was previously split, then skip
+            if (imageFile.name.orEmpty().startsWith("${filenamePrefix}__")) return
 
-        return try {
             ImageUtil.splitTallImage(tmpDir, imageFile, filenamePrefix)
         } catch (e: Exception) {
-            logcat(LogPriority.ERROR, e)
-            false
+            logcat(LogPriority.ERROR, e) { "Failed to split downloaded image" }
         }
     }
 
@@ -527,7 +519,7 @@ class Downloader(
      * @param tmpDir the directory where the download is currently stored.
      * @param dirname the real (non temporary) directory name of the download.
      */
-    private fun ensureSuccessfulDownload(
+    private suspend fun ensureSuccessfulDownload(
         download: Download,
         mangaDir: UniFile,
         tmpDir: UniFile,
@@ -550,14 +542,12 @@ class Downloader(
         }
 
         download.status = if (downloadedImagesCount == downloadPageCount) {
-            // TODO: Uncomment when #8537 is resolved
-//            val chapterUrl = download.source.getChapterUrl(download.chapter)
-//            createComicInfoFile(
-//                tmpDir,
-//                download.manga,
-//                download.chapter.toDomainChapter()!!,
-//                chapterUrl,
-//            )
+            createComicInfoFile(
+                tmpDir,
+                download.manga,
+                download.chapter,
+                download.source,
+            )
 
             // Only rename the directory if it's downloaded
             if (downloadPreferences.saveChaptersAsCBZ().get()) {
@@ -611,23 +601,19 @@ class Downloader(
 
     /**
      * Creates a ComicInfo.xml file inside the given directory.
-     *
-     * @param dir the directory in which the ComicInfo file will be generated.
-     * @param manga the manga.
-     * @param chapter the chapter.
-     * @param chapterUrl the resolved URL for the chapter.
      */
     private fun createComicInfoFile(
         dir: UniFile,
         manga: Manga,
         chapter: Chapter,
-        chapterUrl: String,
+        source: HttpSource,
     ) {
+        val chapterUrl = source.getChapterUrl(chapter.toSChapter())
         val comicInfo = getComicInfo(manga, chapter, chapterUrl)
-        val comicInfoString = xml.encodeToString(ComicInfo.serializer(), comicInfo)
         // Remove the old file
         dir.findFile(COMIC_INFO_FILE)?.delete()
         dir.createFile(COMIC_INFO_FILE).openOutputStream().use {
+            val comicInfoString = xml.encodeToString(ComicInfo.serializer(), comicInfo)
             it.write(comicInfoString.toByteArray())
         }
     }
@@ -650,10 +636,10 @@ class Downloader(
      * Returns true if all the queued downloads are in DOWNLOADED or ERROR state.
      */
     private fun areAllDownloadsFinished(): Boolean {
-        return queueState.value.none { it: Download -> it.status.value <= Download.State.DOWNLOADING.value }
+        return queueState.value.none { it.status.value <= Download.State.DOWNLOADING.value }
     }
 
-    fun addAllToQueue(downloads: List<Download>) {
+    private fun addAllToQueue(downloads: List<Download>) {
         _queueState.update {
             downloads.forEach { download ->
                 download.status = Download.State.QUEUE
@@ -663,7 +649,7 @@ class Downloader(
         }
     }
 
-    fun removeFromQueue(download: Download) {
+    private fun removeFromQueue(download: Download) {
         _queueState.update {
             store.remove(download)
             if (download.status == Download.State.DOWNLOADING || download.status == Download.State.QUEUE) {
@@ -683,7 +669,7 @@ class Downloader(
         queueState.value.filter { it.manga.id == manga.id }.forEach { removeFromQueue(it) }
     }
 
-    fun _clearQueue() {
+    private fun _clearQueue() {
         _queueState.update {
             it.forEach { download ->
                 if (download.status == Download.State.DOWNLOADING || download.status == Download.State.QUEUE) {

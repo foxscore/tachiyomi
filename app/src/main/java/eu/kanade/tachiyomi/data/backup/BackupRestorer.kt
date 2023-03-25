@@ -7,13 +7,13 @@ import eu.kanade.tachiyomi.data.backup.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupHistory
 import eu.kanade.tachiyomi.data.backup.models.BackupManga
 import eu.kanade.tachiyomi.data.backup.models.BackupSource
-import eu.kanade.tachiyomi.data.database.models.Chapter
-import eu.kanade.tachiyomi.data.database.models.Manga
-import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.util.BackupUtil
 import eu.kanade.tachiyomi.util.system.createFileInCacheDir
-import kotlinx.coroutines.Job
-import okio.source
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
+import tachiyomi.domain.chapter.model.Chapter
+import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.track.model.Track
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,8 +23,6 @@ class BackupRestorer(
     private val context: Context,
     private val notifier: BackupNotifier,
 ) {
-
-    var job: Job? = null
 
     private var backupManager = BackupManager(context)
 
@@ -56,7 +54,7 @@ class BackupRestorer(
         return true
     }
 
-    fun writeErrorLog(): File {
+    private fun writeErrorLog(): File {
         try {
             if (errors.isNotEmpty()) {
                 val file = context.createFileInCacheDir("tachiyomi_restore.txt")
@@ -90,18 +88,18 @@ class BackupRestorer(
         val backupMaps = backup.backupBrokenSources.map { BackupSource(it.name, it.sourceId) } + backup.backupSources
         sourceMapping = backupMaps.associate { it.sourceId to it.name }
 
-        // Restore individual manga
-        backup.backupManga.forEach {
-            if (job?.isActive != true) {
-                return false
+        return coroutineScope {
+            // Restore individual manga
+            backup.backupManga.forEach {
+                if (!isActive) {
+                    return@coroutineScope false
+                }
+
+                restoreManga(it, backup.backupCategories)
             }
-
-            restoreManga(it, backup.backupCategories)
+            // TODO: optionally trigger online library + tracker update
+            true
         }
-
-        // TODO: optionally trigger online library + tracker update
-
-        return true
     }
 
     private suspend fun restoreCategories(backupCategories: List<BackupCategory>) {
@@ -127,7 +125,7 @@ class BackupRestorer(
             } else {
                 // Manga in database
                 // Copy information from manga already in database
-                backupManager.restoreExistingManga(manga, dbManga)
+                val manga = backupManager.restoreExistingManga(manga, dbManga)
                 // Fetch rest of manga information
                 restoreNewManga(manga, chapters, categories, history, tracks, backupCategories)
             }
@@ -156,8 +154,6 @@ class BackupRestorer(
         backupCategories: List<BackupCategory>,
     ) {
         val fetchedManga = backupManager.restoreNewManga(manga)
-        fetchedManga.id ?: return
-
         backupManager.restoreChapters(fetchedManga, chapters)
         restoreExtras(fetchedManga, categories, history, tracks, backupCategories)
     }
